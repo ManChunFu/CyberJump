@@ -8,6 +8,7 @@ public class Player : MonoBehaviour
 {
     [SerializeField] private float speed = 3.5f;
     [SerializeField] private float jumpForce = 580f;
+    [SerializeField] private float accerationSpeed = 1.5f;
     [SerializeField] private GameObject laserPrefab;
     [SerializeField] private UIManager uiManager;
     [SerializeField] private GameManager gameManager;
@@ -20,18 +21,22 @@ public class Player : MonoBehaviour
     private Camera mainCamera;
     private Animator playerAnim;
     private GroundCheck groundCheck;
-    private Rigidbody2D rb;
+    public Rigidbody2D rb;
     private AudioSource audioSource;
     private bool muzzleFlashPosChanged = false;
     private float groundedPositionY = -3.05f;
     private bool isFallingToDie = false;
     private bool isDamageToDie = false;
-    private int lives = 3;
-    private float fireRate = 0.2f;
-    private float canFire = -1f;
     private bool isJumping = false;
     private bool isRunning = false;
     private bool isFalling = false;
+    private int lives = 3;
+    private float fireRate = 0.2f;
+    private float canFire = -1f;
+    private float startPositionX = -0.8f;
+    private float fallingHeight = -5.0f;
+    private float backgroundMaxHeight = -0.2f;
+    private float backgroundMinHeight = -3.8f;
 
     private int RunID = Animator.StringToHash("IsRunning");
     private int JumpID = Animator.StringToHash("IsJumping");
@@ -82,7 +87,7 @@ public class Player : MonoBehaviour
     }
     private void Start()
     {
-        transform.position = new Vector2(-0.8f, groundedPositionY);
+        transform.position = new Vector2(startPositionX, groundedPositionY);
         lives = playerValues.Lives;
 
         isFallingToDie = false;
@@ -91,7 +96,7 @@ public class Player : MonoBehaviour
 
     private void Update()
     {
-        if (transform.position.y < -5f && !isFallingToDie)
+        if (transform.position.y < fallingHeight && !isFallingToDie)
         {
             isFallingToDie = true;
             audioSource.Play();
@@ -100,8 +105,10 @@ public class Player : MonoBehaviour
             followCamera.SetActive(true);
             gameManager.AdjustParallexPosition();
 
+            float minXPos = -4.0f;
+            float maxXPos = 4.0f; 
             Vector3 cameraPos = followCamera.transform.position;
-            float xPos = Mathf.Clamp(0f, -4f, 4f);
+            float xPos = Mathf.Clamp(0f, minXPos, maxXPos);
             followCamera.transform.position = new Vector3(xPos, cameraPos.y, cameraPos.z);
         }
 
@@ -125,7 +132,6 @@ public class Player : MonoBehaviour
 
         Time.timeScale = 1;
 
-
         if (Input.GetKey(KeyCode.LeftArrow) || Input.GetKey(KeyCode.A))
         {
             isRunning = true;
@@ -146,7 +152,6 @@ public class Player : MonoBehaviour
             transform.localScale = localScale;
             transform.Translate(Vector2.right * speed * Time.smoothDeltaTime);
         }
-
         if (Input.GetKeyUp(KeyCode.LeftArrow) || Input.GetKeyUp(KeyCode.RightArrow) || Input.GetKeyUp(KeyCode.A) || Input.GetKeyUp(KeyCode.D))
         {
             isRunning = false;
@@ -228,12 +233,12 @@ public class Player : MonoBehaviour
         }
 
 
-        if (rb.velocity.y < (gameManager.BackgroundChanged ? -3.8f : -0.2f))
+        if (rb.velocity.y < (gameManager.BackgroundChanged ? backgroundMinHeight : backgroundMaxHeight))
         {
             isFalling = true;
             isRunning = false;
             playerAnim.SetBool(FallID, true);
-            rb.velocity += Vector2.up * Physics2D.gravity.y * 1.5f * Time.deltaTime;
+            rb.velocity += Vector2.up * Physics2D.gravity.y * accerationSpeed * Time.deltaTime;
         }
     }
 

@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 11b5dd2e16dbdd44ca1c71339868c383, type: 3}
   m_Name: PlayerValues
   m_EditorClassIdentifier: 
-  Lives: 3
-  Scores: 0
+  Lives: 0
+  Scores: 4150

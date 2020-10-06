@@ -6,12 +6,13 @@ public class GroundFloor : MonoBehaviour
 {
     [SerializeField] private GameManager gameManager;
     [SerializeField] private Player player;
+    [SerializeField] private Animator playerAnim;
 
     private Vector2 origianlPosition;
     private AudioSource hitGroundClip;
-    [SerializeField]private Animator playerAnim;
 
     private float distance;
+    private float groundMovingSpeed = 1.2f;
 
     private void Awake()
     {
@@ -47,8 +48,14 @@ public class GroundFloor : MonoBehaviour
         }
     }
 
+    public void MoveDown()
+    {
+        transform.Translate(Vector2.down * (Time.deltaTime * groundMovingSpeed));
+    }
+
     public void Reset()
     {
         transform.position = origianlPosition - new Vector2(0f, distance);
     }
+
 }

@@ -13,10 +13,13 @@ public class GameManager : MonoBehaviour
     [SerializeField] private UIManager uiManager;
     [SerializeField] private Button[] buttons;
     [SerializeField] private JoystickMode joystick;
+    [SerializeField] private Transform space;
 
     private Player playerScript;
     private int? selectedButtonIndex = null;
     private bool joystickPressedUp = true;
+    private float maxHeight = 2.0f;
+    private float minHeight = -4.0f;
 
     public GameObject Ground; //needs to be public so SpawnPlatform / SpawnMiddleground works
 
@@ -30,6 +33,8 @@ public class GameManager : MonoBehaviour
     public bool TimeToDestroyPlatform = false;
     public bool JoystickMode = false;
 
+    private bool isFallingToDie = false;
+    private const float maxDistanceToGround = 200.0f;
     private void Awake()
     {
         buttons[0].Select();
@@ -47,12 +52,15 @@ public class GameManager : MonoBehaviour
         Assert.IsNotNull(playerScript, "Failed to access Player script.");
 
         Assert.IsNotNull(joystick, "No reference to JoystickMode scriptable object.");
+
+        Assert.IsNotNull(space, "No reference to Space.");
     }
 
     private void Start()
     {
         if (joystick.JoystickOn)
             JoystickMode = true;
+
     }
 
     private void Update()
@@ -63,13 +71,13 @@ public class GameManager : MonoBehaviour
             Time.timeScale = 0;
         }
 
-        if (player.position.y > 2f)
+        if (player.position.y > maxHeight)
             BackgroundChanged = true;
 
-        if (player.position.y < -4f)
+        if (player.position.y < minHeight || isFallingToDie)
             BackgroundChanged = false;
 
-        if (BackgroundChanged == true)
+        if (BackgroundChanged)
         {
             MovingBackground();
             TimeToDestroyPlatform = true;
@@ -78,21 +86,26 @@ public class GameManager : MonoBehaviour
 
     public void AdjustParallexPosition()
     {
-        foreach (Transform item in background)
+        BackgroundChanged = false;
+        isFallingToDie = true;
+        // turn off background spotlight
+        background.GetChild(6).gameObject.SetActive(false); 
+
+        float playerDistanceToGround = Vector2.Distance(player.transform.position, Ground.transform.position);
+        
+        if (playerDistanceToGround < maxDistanceToGround)
         {
-            BackgroundMoving backgrounMoving = item.GetComponent<BackgroundMoving>();
-
-            if (backgrounMoving != null)
-                backgrounMoving.Reset();
+            CallBackgroundReset(playerDistanceToGround);
         }
-        GroundFloor groundFloor = Ground.GetComponent<GroundFloor>();
-        if (groundFloor != null)
-            groundFloor.Reset();
-
+        else
+        {
+            CallSpaceReset(playerDistanceToGround);
+            CallBackgroundReset(playerDistanceToGround);
+        }
     }
     private void MovingBackground()
     {
-        Ground.transform.Translate(Vector2.down * (Time.deltaTime * 1.2f));
+        Ground.GetComponent<GroundFloor>().MoveDown();
 
         foreach (Transform item in background)
         {
@@ -103,6 +116,32 @@ public class GameManager : MonoBehaviour
         NotFirstFloor = true;
     }
 
+    private void CallBackgroundReset(float playerDistance)
+    {
+        foreach (Transform item in background)
+        {
+            BackgroundMoving backgrounMoving = item.GetComponent<BackgroundMoving>();
+
+            if (backgrounMoving != null)
+            {
+                backgrounMoving.SetResetSpeed(Vector2.Distance(backgrounMoving.transform.position, Ground.transform.position), playerDistance);
+                backgrounMoving.EnableReset(true);
+            }
+        }
+    }
+
+    private void CallSpaceReset(float playerDistance)
+    {
+        foreach (Transform item in space)
+        {
+            ScrollingBackground scrollingBG = item.GetComponent<ScrollingBackground>();
+            if (scrollingBG != null)
+            {
+                scrollingBG.SetResetSpeed(Vector2.Distance(scrollingBG.transform.position, Ground.transform.position), playerDistance);
+                scrollingBG.EnableReset(true);
+            }
+        }
+    }
 
     public void ResumeGame()
     {
@@ -118,6 +157,7 @@ public class GameManager : MonoBehaviour
         SceneManager.LoadScene(1);
         Time.timeScale = 1;
     }
+
 
     public void ExitGame()
     {
